@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const path = require('path');
 
 dotenv.config();
 
@@ -9,14 +10,18 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors()); // <-- This line enables CORS
+app.use(cors({
+    origin: "*", // replace "*" with your frontend URL for security later
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+}));
 app.use(express.json());
 
 // Connect to MongoDB
 const mongoUri = process.env.MONGODB_URI;
 mongoose.connect(mongoUri)
-    .then(() => console.log('MongoDB connected successfully'))
-    .catch(err => console.error('MongoDB connection error:', err));
+    .then(() => console.log('✅ MongoDB connected successfully'))
+    .catch(err => console.error('❌ MongoDB connection error:', err));
 
 // Define Mongoose Schemas and Models
 const userSchema = new mongoose.Schema({
@@ -36,7 +41,6 @@ const athleteSchema = new mongoose.Schema({
 const Athlete = mongoose.model('Athlete', athleteSchema);
 
 // API Routes
-// Sign up a new user
 app.post('/api/signup', async (req, res) => {
     const { name, password, userType } = req.body;
     try {
@@ -48,7 +52,6 @@ app.post('/api/signup', async (req, res) => {
     }
 });
 
-// Login a user
 app.post('/api/login', async (req, res) => {
     const { name, password } = req.body;
     try {
@@ -63,7 +66,6 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// Fetch all athletes
 app.get('/api/athletes', async (req, res) => {
     try {
         const athletes = await Athlete.find();
@@ -73,7 +75,6 @@ app.get('/api/athletes', async (req, res) => {
     }
 });
 
-// Fetch a single athlete by userId
 app.get('/api/athletes/:userId', async (req, res) => {
     const { userId } = req.params;
     try {
@@ -88,14 +89,13 @@ app.get('/api/athletes/:userId', async (req, res) => {
     }
 });
 
-// Update or create an athlete's metrics
 app.post('/api/athletes', async (req, res) => {
     const { userId, name, activityType, metrics } = req.body;
     try {
         const updatedAthlete = await Athlete.findOneAndUpdate(
             { userId }, 
             { name, activityType, metrics, lastUpdated: new Date() },
-            { new: true, upsert: true } // upsert creates a new document if one doesn't exist
+            { new: true, upsert: true }
         );
         res.status(200).json(updatedAthlete);
     } catch (error) {
@@ -103,18 +103,14 @@ app.post('/api/athletes', async (req, res) => {
     }
 });
 
-// Serve Vite frontend build in production
-const path = require("path");
-
+// Serve frontend in production
 if (process.env.NODE_ENV === "production") {
     app.use(express.static(path.join(__dirname, "dist")));
-
     app.get("*", (req, res) => {
         res.sendFile(path.join(__dirname, "dist", "index.html"));
     });
 }
 
-
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+    console.log(`🚀 Server is running on port ${PORT}`);
 });
